@@ -1,0 +1,12 @@
+services:
+  playlist-converter:
+    build:
+      context: /opt/playlist-converter
+      dockerfile: ./Dockerfile
+    container_name: playlist-converter
+    ports:
+      - "3003:3003"
+    volumes:
+      - /opt/playlist-converter:/app
+      - /app/node_modules
+    restart: unless-stopped

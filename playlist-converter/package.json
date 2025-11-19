@@ -1,0 +1,14 @@
+{
+  "name": "tidal-converter",
+  "version": "1.0.0",
+  "description": "JSPF to XSPF converter web app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "express-fileupload": "^1.5.2",
+    "multer": "^2.0.2"
+  }
+}
