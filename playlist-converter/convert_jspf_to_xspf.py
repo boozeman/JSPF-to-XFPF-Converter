@@ -6,6 +6,7 @@ Usage:
     python3 convert_jspf_to_xspf.py input.jspf output.xspf
     python3 convert_jspf_to_xspf.py - output.xspf   # read JSPF JSON from stdin
 """
+import os
 import argparse
 import json
 import sys
@@ -74,7 +75,7 @@ def jspf_to_xspf(jspf):
 def main():
     parser = argparse.ArgumentParser(description="Convert JSPF (JSON) to XSPF (XML).")
     parser.add_argument('input', help="Input JSPF file path or '-' to read from stdin")
-    parser.add_argument('output', help="Output XSPF file path")
+    parser.add_argument('output', nargs='?', help="Output XSPF file path (optional)")
     args = parser.parse_args()
 
     # Read input JSON
@@ -92,6 +93,13 @@ def main():
         sys.exit(2)
 
     playlist_el = jspf_to_xspf(jspf)
+
+    if args.output is None:
+        if args.input == "-":
+            print("Error: must specify output name when reading from stdin.", file=sys.stderr)
+            sys.exit(2)
+        base, _ = os.path.splitext(args.input)
+        args.output = base + ".xspf"
 
     # Build tree and write with xml declaration and UTF-8 encoding
     tree = ET.ElementTree(playlist_el)

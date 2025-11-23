@@ -12,7 +12,7 @@
 </head>
 <body>
   <h1>JSPF → XSPF Converter</h1>
-  <p>Choose JSPF-file and press Convert to XSPF -button.</p>
+  <p>Select a JSPF file and press the button to convert it to XSPF format.</p>
 
   <form id="convertForm" enctype="multipart/form-data">
     <input type="file" name="jspfFile" id="fileInput" accept=".jspf,application/json" required />
@@ -22,28 +22,41 @@
   <script>
     document.getElementById('convertForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const formData = new FormData();
+
       const fileInput = document.getElementById('fileInput');
-      if (!fileInput.files.length) return alert('Valitse tiedosto');
-      formData.append('jspfFile', fileInput.files[0]);
+      if (!fileInput.files.length) {
+        alert("Select a JSPF file first.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("jspfFile", fileInput.files[0]);
 
       try {
         const res = await fetch('/convert', { method: 'POST', body: formData });
+
         if (!res.ok) {
           const text = await res.text();
-          return alert('Virhe palvelimelta: ' + text);
+          alert("Server error: " + text);
+          return;
         }
-        const blob = await res.blob();
-        const a = document.createElement('a');
-        a.href = window.URL.createObjectURL(blob);
-        a.download = 'playlist.xspf';
+
+        // Server returns JSON: { filename: "originalname.xspf" }
+        const data = await res.json();
+
+        // Create download link for the generated file
+        const a = document.createElement("a");
+        a.href = `/download/${data.filename}`;
+        a.download = data.filename;
         document.body.appendChild(a);
         a.click();
         a.remove();
+
       } catch (err) {
-        alert('Virhe: ' + err);
+        alert("Error: " + err);
       }
     });
   </script>
+
 </body>
 </html>

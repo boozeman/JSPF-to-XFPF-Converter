@@ -4,6 +4,7 @@ Simple Listenbrainz.org jspf playlist converter for Tidal XSPF Playlists made wi
 # Features
 
 * Converts JSPF to XFPF
+* xfpf File name is the same as original jspf.
 
 # Setup
 
