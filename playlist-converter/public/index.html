@@ -1,50 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tidal JSPF → XSPF Converter</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JSPF → XSPF Converter</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Heroicons -->
+  <script src="https://unpkg.com/heroicons@2.0.16/outline/index.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; max-width: 600px; }
-    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 1rem; }
-    button { cursor: pointer; }
+    /* Soft neumorphic background */
+    body {
+      background: #eef1f5;
+    }
+
+    .soft-card {
+      background: #eef1f5;
+      box-shadow:
+        8px 8px 16px #c8ccd1,
+        -8px -8px 16px #ffffff;
+    }
+
+    .soft-card-pressed {
+      box-shadow:
+        inset 4px 4px 8px #c8ccd1,
+        inset -4px -4px 8px #ffffff;
+    }
   </style>
 </head>
-<body>
-  <h1>JSPF → XSPF Converter</h1>
-  <p>Select a JSPF file and press the button to convert it to XSPF format.</p>
 
-  <form id="convertForm" enctype="multipart/form-data">
-    <input type="file" name="jspfFile" id="fileInput" accept=".jspf,application/json" required />
-    <button type="submit">Convert to XSPF</button>
-  </form>
+<body class="min-h-screen flex items-center justify-center p-6">
+
+  <div class="soft-card rounded-3xl p-10 w-full max-w-xl transition-all">
+
+    <h1 class="text-3xl font-semibold mb-6 text-center">
+      <span class="text-indigo-600">JSPF</span> → XSPF Converter
+    </h1>
+
+    <!-- Dropzone -->
+    <div id="dropzone"
+         class="rounded-2xl border-2 border-dashed border-gray-400 p-10 text-center cursor-pointer transition-all hover:border-indigo-500 hover:bg-white">
+
+      <svg xmlns="http://www.w3.org/2000/svg"
+           class="h-12 w-12 mx-auto text-gray-500 mb-3"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M12 16v-8m0 0l-3 3m3-3l3 3m6-1a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+
+      <p class="text-gray-600 text-lg">Drop JSPF file here</p>
+      <p class="text-gray-400 text-sm mt-1">or click to browse</p>
+
+      <input type="file" id="fileInput" accept=".jspf,application/json" class="hidden" />
+    </div>
+
+    <!-- Convert button -->
+    <button id="convertBtn"
+            class="mt-6 w-full py-3 rounded-xl text-white font-medium bg-indigo-600 hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled>
+      Convert to XSPF
+    </button>
+
+    <!-- Status area -->
+    <div id="status" class="text-center mt-6 text-gray-600 text-sm"></div>
+
+  </div>
 
   <script>
-    document.getElementById('convertForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("fileInput");
+    const convertBtn = document.getElementById("convertBtn");
+    const statusEl = document.getElementById("status");
 
-      const fileInput = document.getElementById('fileInput');
-      if (!fileInput.files.length) {
-        alert("Select a JSPF file first.");
-        return;
+    let selectedFile = null;
+
+    // clicking dropzone triggers file dialog
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    // drag-over highlight
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add("bg-white", "border-indigo-600");
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove("bg-white", "border-indigo-600");
+    });
+
+    // drop file
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("bg-white", "border-indigo-600");
+
+      if (e.dataTransfer.files.length) {
+        selectedFile = e.dataTransfer.files[0];
+        dropzoneText(selectedFile.name);
+        convertBtn.disabled = false;
       }
+    });
+
+    // file chosen via dialog
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) {
+        selectedFile = fileInput.files[0];
+        dropzoneText(selectedFile.name);
+        convertBtn.disabled = false;
+      }
+    });
+
+    function dropzoneText(filename) {
+      dropzone.innerHTML = `
+        <p class="text-gray-700 text-lg font-medium">Selected:</p>
+        <p class="text-indigo-600 mt-1">${filename}</p>
+        <p class="text-gray-400 text-sm mt-1">(click to change)</p>
+      `;
+    }
+
+    // Convert and download
+    convertBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      convertBtn.disabled = true;
+      statusEl.innerText = "Converting…";
 
       const formData = new FormData();
-      formData.append("jspfFile", fileInput.files[0]);
+      formData.append("jspfFile", selectedFile);
 
       try {
         const res = await fetch('/convert', { method: 'POST', body: formData });
-
-        if (!res.ok) {
-          const text = await res.text();
-          alert("Server error: " + text);
-          return;
-        }
-
-        // Server returns JSON: { filename: "originalname.xspf" }
         const data = await res.json();
 
-        // Create download link for the generated file
+        statusEl.innerText = "Ready – downloading…";
+
         const a = document.createElement("a");
         a.href = `/download/${data.filename}`;
         a.download = data.filename;
@@ -52,9 +142,13 @@
         a.click();
         a.remove();
 
+        statusEl.innerText = "Done!";
+
       } catch (err) {
-        alert("Error: " + err);
+        statusEl.innerText = "Error: " + err;
       }
+
+      convertBtn.disabled = false;
     });
   </script>
 
